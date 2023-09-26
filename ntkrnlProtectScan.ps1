@@ -247,3 +247,15 @@ $table += [pscustomobject]@{"Protection Type" = "System Guard Secure Launch"; "S
 $table += [pscustomobject]@{"Protection Type" = "SMM Firmware Measuremen"; "Status" = @("Off", "On")[$status_SMMFirmwareMeasurement]}
 $table | Format-Table
 
+<# ================================= Display which kind of attack methods is ok to use ================================= #>
+# SMEP, KCFG, HVCI, KCET
+$e = [char]0x1b # escape
+$attacks = @()
+$attacks += [pscustomobject]@{"Attack Chance" = "Kernel Data Manipulation"; "Status" = "$e[32mSecured$e[0m"}
+$attacks += [pscustomobject]@{"Attack Chance" = "Clear CR4 to disable SMEP for running shellcode in kernel"; "Status" = "$e[41mVulnerable$e[0m"}
+$attacks += [pscustomobject]@{"Attack Chance" = "Abuse PTEs to Run User-mode Shellcode as Supervisor"; "Status" = "Vulnerable"}
+$attacks += [pscustomobject]@{"Attack Chance" = "Inject Kernel Data with Shellcode to Bypass KCFG"; "Status" = "Vulnerable"}
+$attacks += [pscustomobject]@{"Attack Chance" = "Kernel-mode ROP chains"; "Status" = "Vulnerable"}
+$attacks += [pscustomobject]@{"Attack Chance" = "Kernel-mode ROP chains to Clear CR4 and disable SMEP"; "Status" = "Vulnerable"}
+$attacks | Format-Table
+
