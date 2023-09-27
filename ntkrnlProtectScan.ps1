@@ -1,4 +1,20 @@
-echo "KrnlProtect-Scan.ps1"
+@"
+_   _ _____   _  __                    _               
+| \ | |_   _| | |/ /___ _ __ _ __   ___| |              
+|  \| | | |   | ' // _ \ '__| '_ \ / _ \ |              
+| |\  | | |   | . \  __/ |  | | | |  __/ |              
+|_| \_| |_|   |_|\_\___|_|  |_| |_|\___|_|              
+ ____            _            _   ____                  
+|  _ \ _ __ ___ | |_ ___  ___| |_/ ___|  ___ __ _ _ __  
+| |_) | '__/ _ \| __/ _ \/ __| __\___ \ / __/ _` | '_ \ 
+|  __/| | | (_) | ||  __/ (__| |_ ___) | (_| (_| | | | |
+|_|   |_|  \___/ \__\___|\___|\__|____/ \___\__,_|_| |_|
+github.com/aaaddress1/ntkrnlProtectScan
+ntkrnlProtectScan [v1]
+
+"@
+
+echo "Windows Environment Version: $([System.Environment]::OSVersion.Version)"
 # How to Verify if Device Guard is Enabled or Disabled in Windows 10
 # ref: https://www.tenforums.com/tutorials/68926-verify-if-device-guard-enabled-disabled-windows-10-a.html
 $DeviceGuard = Invoke-Expression( 'Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard' )
@@ -165,7 +181,7 @@ Function Read-BinaryFile {
     }
 }
 
-$FileStream = [System.IO.File]::Open("ntoskrnl.exe", [System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::Read) 
+$FileStream = [System.IO.File]::Open(" C:\\Users\\aaaddress1\\Downloads\\ntoskrnl.exe", [System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::Read) 
 $BinaryReader = New-Object System.IO.BinaryReader($FileStream)
 [void]$BinaryReader.BaseStream.Seek(0,[System.IO.SeekOrigin]::Begin)
  
