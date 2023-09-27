@@ -9,7 +9,7 @@ VirtualizationBasedSecurityStatus:
     1. VBS is enabled but not running.
     2. VBS is enabled and running.
 #>
-$status_VBS = $DeviceGuard.VirtualizationBasedSecurityStatus #switch ( $DeviceGuard.VirtualizationBasedSecurityStatus ) { 0 { "Off" } 1 { "Enabled but Not Running" } 2 { "On" } }
+$status_VBS = $DeviceGuard.VirtualizationBasedSecurityStatus
 
 <#
 SecurityServicesConfigured & SecurityServicesRunning:
@@ -42,7 +42,6 @@ $status_SMEP = [System.Environment]::OSVersion.Version.Major -ge 8
 <# 
  =========================================================== Check Kernel-mode Control Flow Guard ==============================================
 #>
-$filename = "C:\windows\system32\ntoskrnl.exe"
 [Uint16]$IMAGE_DOS_SIGNATURE = 0x5A4D
 [Uint16]$IMAGE_NT_OPTIONAL_HDR32_MAGIC = 0x10b
 [UInt16]$IMAGE_NT_OPTIONAL_HDR64_MAGIC = 0x20b
@@ -120,95 +119,53 @@ $IMAGE_OPTIONAL_HEADER64.Add("CheckSum",[Uint32]0)
 $IMAGE_OPTIONAL_HEADER64.Add("Subsystem",[Uint16]0)
 $IMAGE_OPTIONAL_HEADER64.Add("DllCharacteristics",[Uint16]0)
  
-Function Read-BinaryFile
-{
+Function Read-BinaryFile {
     param(
     [System.IO.BinaryReader][ref]$reader,
     [System.Collections.Specialized.OrderedDictionary][ref]$items)
-    
-    
     $keys = New-Object String[] $items.Count
     $items.Keys.CopyTo($keys,0)
    
-    for ($i = 0;$i -lt $items.Count;$i++)
-    {
+    for ($i = 0;$i -lt $items.Count;$i++) {
         $item = $keys[$i]
-        
-        if ($items[$item] -is [Array])
-        {
-            if ($items[$item][0] -is [System.Collections.Specialized.OrderedDictionary])
-            {
-                ForEach ($subItem in $items[$item])
-                {
+        if ($items[$item] -is [Array]) {
+            if ($items[$item][0] -is [System.Collections.Specialized.OrderedDictionary]) {
+                ForEach ($subItem in $items[$item]) {
                     Read-BinaryFile -reader ([ref]$reader) -items ([ref]$subItem)
                 }
             }
             else
             {
                 $currentItem = $items[$item][0]
-                For ($j = 0;$j -lt $items[$item].Length;$j++)
-                {
-                    switch($currentItem.GetType().Name)
-                    {
-                        "Byte"
-                        {
-                            $items[$item][$j] = $reader.ReadByte()
-                        }
-                        "Uint16"
-                        { 
-                            $items[$item][$j] = $Reader.ReadUint16()
-                        }
-                        "Uint32"
-                        {
-                            $items[$item][$j] = $reader.ReadUInt32()
-                        }
-                        "Uint64"
-                        { 
-                            $items[$item][$j] = $Reader.ReadUInt64()
-                        }
+                For ($j = 0;$j -lt $items[$item].Length;$j++) {
+                    switch($currentItem.GetType().Name) {
+                        "Byte"   { $items[$item][$j] = $reader.ReadByte() }
+                        "Uint16" { $items[$item][$j] = $Reader.ReadUint16() }
+                        "Uint32" { $items[$item][$j] = $reader.ReadUInt32() }
+                        "Uint64" { $items[$item][$j] = $Reader.ReadUInt64() }
                         default  { "Unknown Type! $($currentItem.GetType().Name)" }
                     }
                 }
             }
         }
-        else
-        {
+        else {
             $currentItem = $items[$item]
-            if ($currentItem -is [System.Collections.Specialized.OrderedDictionary])
-            {
+            if ($currentItem -is [System.Collections.Specialized.OrderedDictionary]) { 
                 Read-BinaryFile -reader ([ref]$reader) -items ([ref]$items[$item])
-            }
-            else
-            {
-                switch($currentItem.GetType().Name)
-                {
-                    "Byte"
-                    {
-                        $items[$item] = $reader.ReadByte()
-                    }
- 
-                    "Uint16" { 
-                        $items[$item] = $reader.ReadUint16()
- 
-                    }
-                    "Uint32"
-                    { 
-                         $items[$item] = $reader.ReadUint32()
-                    }
-                    "Uint64"
-                    {
-                        $items[$item] = $reader.ReadUint64()               
-                    }
+            } else {
+                switch($currentItem.GetType().Name) {
+                    "Byte"   { $items[$item] = $reader.ReadByte()   }
+                    "Uint16" { $items[$item] = $reader.ReadUint16() }
+                    "Uint32" { $items[$item] = $reader.ReadUint32() }
+                    "Uint64" { $items[$item] = $reader.ReadUint64() }
                     default  { "Unknown Type! $($currentItem.GetType().Name)" }
                 }
             }
         }
     }
 }
- 
 
-
-$FileStream = [System.IO.File]::Open($filename, [System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::Read) 
+$FileStream = [System.IO.File]::Open("ntoskrnl.exe", [System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::Read) 
 $BinaryReader = New-Object System.IO.BinaryReader($FileStream)
 [void]$BinaryReader.BaseStream.Seek(0,[System.IO.SeekOrigin]::Begin)
  
@@ -235,27 +192,54 @@ $BinaryReader.Close()
 $FileStream.Close()
 
 <# ================================= Display the status of current windows machine ================================= #>
-switch ( $DeviceGuard.VirtualizationBasedSecurityStatus ) { 0 { "Off" } 1 { "Enabled but Not Running" } 2 { "On" } }
 $table = @()
-$table += [pscustomobject]@{"Protection Type" = "Supervisor Mode Execution Prevention (SMEP)"; "Status" = @("Off", "On")[$status_SMEP]}
-$table += [pscustomobject]@{"Protection Type" = "Kernel Control Flow Guard (KCFG)"; "Status" = @("Off", "On")[$status_KCFG]}
-$table += [pscustomobject]@{"Protection Type" = "Virtualization-based Security (VBS)"; "Status" =switch ( $status_VBS ) { 0 { "Off" } 1 { "Enabled but Not Running" } 2 { "On" } }}
-$table += [pscustomobject]@{"Protection Type" = "Hypervisor-Protected Code Integrity (HVCI)"; "Status" =@("Off", "On")[ $status_MemoryIntegrity]}
-$table += [pscustomobject]@{"Protection Type" = "Kernel Control-Flow Enforcement Technology (KCET) "; "Status" = @("Off", "On")[$status_KCET]}
-$table += [pscustomobject]@{"Protection Type" = "Credential Guard"; "Status" = @("Off", "On")[$status_CredentialGuard]}
-$table += [pscustomobject]@{"Protection Type" = "System Guard Secure Launch"; "Status" = @("Off", "On")[$status_SystemGuardSecureLaunch]}
-$table += [pscustomobject]@{"Protection Type" = "SMM Firmware Measuremen"; "Status" = @("Off", "On")[$status_SMMFirmwareMeasurement]}
+$e = [char]0x1b # escape
+$STR_ON = "$e[32mOn$e[0m"
+$STR_OFF = "$e[41mOff$e[0m"
+$ARR_SWITCH_ONOFF = @($STR_OFF, $STR_ON)
+$table += [pscustomobject]@{"Protection Type" = "Supervisor Mode Execution Prevention (SMEP)"; "Status" = $ARR_SWITCH_ONOFF[$status_SMEP]}
+$table += [pscustomobject]@{"Protection Type" = "Kernel Control Flow Guard (KCFG)"; "Status" = $ARR_SWITCH_ONOFF[$status_KCFG]}
+$table += [pscustomobject]@{"Protection Type" = "Virtualization-based Security (VBS)"; "Status" =switch ( $status_VBS ) { 0 { $STR_OFF } 1 { "$e[43mEnabled but Not Running$e[0m" } 2 { $STR_ON } }}
+$table += [pscustomobject]@{"Protection Type" = "Hypervisor-Protected Code Integrity (HVCI)"; "Status" =$ARR_SWITCH_ONOFF[ $status_MemoryIntegrity]}
+$table += [pscustomobject]@{"Protection Type" = "Kernel Control-Flow Enforcement Technology (KCET) "; "Status" = $ARR_SWITCH_ONOFF[$status_KCET]}
+$table += [pscustomobject]@{"Protection Type" = "Credential Guard"; "Status" = $ARR_SWITCH_ONOFF[$status_CredentialGuard]}
+$table += [pscustomobject]@{"Protection Type" = "System Guard Secure Launch"; "Status" = $ARR_SWITCH_ONOFF[$status_SystemGuardSecureLaunch]}
+$table += [pscustomobject]@{"Protection Type" = "SMM Firmware Measuremen"; "Status" = $ARR_SWITCH_ONOFF[$status_SMMFirmwareMeasurement]}
 $table | Format-Table
 
 <# ================================= Display which kind of attack methods is ok to use ================================= #>
 # SMEP, KCFG, HVCI, KCET
 $e = [char]0x1b # escape
-$attacks = @()
-$attacks += [pscustomobject]@{"Attack Chance" = "Kernel Data Manipulation"; "Status" = "$e[32mSecured$e[0m"}
-$attacks += [pscustomobject]@{"Attack Chance" = "Clear CR4 to disable SMEP for running shellcode in kernel"; "Status" = "$e[41mVulnerable$e[0m"}
-$attacks += [pscustomobject]@{"Attack Chance" = "Abuse PTEs to Run User-mode Shellcode as Supervisor"; "Status" = "Vulnerable"}
-$attacks += [pscustomobject]@{"Attack Chance" = "Inject Kernel Data with Shellcode to Bypass KCFG"; "Status" = "Vulnerable"}
-$attacks += [pscustomobject]@{"Attack Chance" = "Kernel-mode ROP chains"; "Status" = "Vulnerable"}
-$attacks += [pscustomobject]@{"Attack Chance" = "Kernel-mode ROP chains to Clear CR4 and disable SMEP"; "Status" = "Vulnerable"}
-$attacks | Format-Table
+$STR_SECURE = "$e[32mSecured$e[0m"
+$STR_VULNER = "$e[41mVulnerable$e[0m"
+$ARR_SEC_OR_VUL = @($STR_SECURE, $STR_VULNER)
+$TEMP_VULNERABLE = $true 
 
+$attacks = @()
+$attacks += [pscustomobject]@{"Attack Chance" = "Kernel Data Manipulation"; "Status" = $STR_VULNER}
+
+# ---
+if ($status_VBS) { $TEMP_VULNERABLE = (!$status_SMEP -and !$status_MemoryIntegrity) -and !$status_KCFG }
+else { $TEMP_VULNERABLE = !$status_KCFG }
+$attacks += [pscustomobject]@{"Attack Chance" = "Clear CR4 to disable SMEP for running shellcode in kernel"; "Status" = $ARR_SEC_OR_VUL[$TEMP_VULNERABLE]}
+
+# ---
+if ($status_VBS) { $TEMP_VULNERABLE = !$status_MemoryIntegrity -and !$status_KCFG }
+else { $TEMP_VULNERABLE = !$status_KCFG }
+$attacks += [pscustomobject]@{"Attack Chance" = "Abuse PTEs to Run User-mode Shellcode as Supervisor"; "Status" = $ARR_SEC_OR_VUL[$TEMP_VULNERABLE]}
+
+# ---
+if ($status_VBS) { $TEMP_VULNERABLE = !$status_MemoryIntegrity }
+else { $TEMP_VULNERABLE = !$status_MemoryIntegrity }
+$attacks += [pscustomobject]@{"Attack Chance" = "Inject Kernel Data with Shellcode to Bypass KCFG"; "Status" = $ARR_SEC_OR_VUL[$TEMP_VULNERABLE]}
+
+# ---
+if ($status_VBS) { $TEMP_VULNERABLE = !$status_KCET }
+else { $TEMP_VULNERABLE = !$status_KCET }
+$attacks += [pscustomobject]@{"Attack Chance" = "Kernel-mode ROP chains"; "Status" = $ARR_SEC_OR_VUL[$TEMP_VULNERABLE]}
+
+# ---
+if ($status_VBS) { $TEMP_VULNERABLE = !$status_KCET -and !$status_KCFG -and (!$status_SMEP -and !$status_MemoryIntegrity) }
+else { $TEMP_VULNERABLE = !$status_KCET }
+$attacks += [pscustomobject]@{"Attack Chance" = "Kernel-mode ROP chains to Clear CR4 and disable SMEP"; "Status" =  $ARR_SEC_OR_VUL[$TEMP_VULNERABLE]}
+$attacks | Format-Table
