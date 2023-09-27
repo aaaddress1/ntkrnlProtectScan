@@ -181,7 +181,7 @@ Function Read-BinaryFile {
     }
 }
 
-$FileStream = [System.IO.File]::Open(" C:\\Users\\aaaddress1\\Downloads\\ntoskrnl.exe", [System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::Read) 
+$FileStream = [System.IO.File]::Open("ntoskrnl.exe", [System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::Read) 
 $BinaryReader = New-Object System.IO.BinaryReader($FileStream)
 [void]$BinaryReader.BaseStream.Seek(0,[System.IO.SeekOrigin]::Begin)
  
