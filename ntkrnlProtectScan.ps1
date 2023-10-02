@@ -10,6 +10,7 @@ _   _ _____   _  __                    _
 |  __/| | | (_) | ||  __/ (__| |_ ___) | (_| (_| | | | |
 |_|   |_|  \___/ \__\___|\___|\__|____/ \___\__,_|_| |_|
  ~ github.com/aaaddress1/ntkrnlProtectScan
+ ~ by shenghao_ma@txone.com
  ~ ntkrnlProtectScan [v1]
 
 "@
